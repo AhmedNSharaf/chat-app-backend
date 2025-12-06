@@ -1,3 +1,129 @@
+# Deployment Guide
+
+This guide will help you deploy the chat backend to either Vercel or Render.
+
+---
+
+# Deploying to Vercel
+
+## Prerequisites
+
+1. A Vercel account (sign up at https://vercel.com)
+2. A MongoDB Atlas account for your database (https://www.mongodb.com/cloud/atlas)
+3. Vercel CLI installed (optional): `npm i -g vercel`
+
+## Important Note About Socket.IO on Vercel
+
+⚠️ **WARNING**: Vercel's serverless functions have limitations with WebSocket connections (Socket.IO). For production use with real-time features, consider:
+- Using Vercel with an external WebSocket service (like Pusher, Ably)
+- Deploying to Render, Railway, or other platforms that support long-running processes
+- Using Vercel only for the REST API and hosting Socket.IO separately
+
+## Step 1: Set up MongoDB Atlas
+
+1. Create a free MongoDB cluster at https://www.mongodb.com/cloud/atlas
+2. Create a database user with password
+3. Whitelist all IP addresses (0.0.0.0/0) in Network Access
+4. Get your connection string (it will look like: `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/chatapp?retryWrites=true&w=majority`)
+
+## Step 2: Deploy to Vercel
+
+### Option A: Using Vercel Dashboard (Recommended)
+
+1. Push your code to GitHub/GitLab/Bitbucket
+2. Go to https://vercel.com/dashboard
+3. Click "Add New..." → "Project"
+4. Import your repository
+5. Configure the project:
+   - **Framework Preset**: Other
+   - **Root Directory**: ./
+   - **Build Command**: (leave default)
+   - **Output Directory**: (leave default)
+
+6. Add Environment Variables:
+   - `MONGODB_URI`: Your MongoDB Atlas connection string
+   - `JWT_SECRET`: A secure random string (use a password generator)
+   - `NODE_ENV`: production
+
+7. Click "Deploy"
+
+### Option B: Using Vercel CLI
+
+1. Install Vercel CLI if you haven't already:
+   ```bash
+   npm i -g vercel
+   ```
+
+2. Login to Vercel:
+   ```bash
+   vercel login
+   ```
+
+3. Deploy from your project directory:
+   ```bash
+   vercel
+   ```
+
+4. Follow the prompts and add environment variables when asked
+
+5. For production deployment:
+   ```bash
+   vercel --prod
+   ```
+
+## Step 3: Environment Variables
+
+Make sure to set these environment variables in Vercel:
+
+- `MONGODB_URI`: Your MongoDB connection string from Atlas
+- `JWT_SECRET`: A secure random string for JWT tokens (min 32 characters recommended)
+- `NODE_ENV`: production
+
+## Step 4: Update CORS Settings
+
+After deployment, update the CORS settings in [backend/server.js](backend/server.js) to only allow your frontend domain:
+
+```javascript
+const io = socketIo(server, {
+  cors: {
+    origin: "https://your-frontend-domain.com",
+    methods: ["GET", "POST"]
+  }
+});
+
+app.use(cors({
+  origin: "https://your-frontend-domain.com"
+}));
+```
+
+## Step 5: Test Your Deployment
+
+Once deployed, your API will be available at: `https://your-project-name.vercel.app`
+
+Test the endpoints:
+- Health check: `https://your-project-name.vercel.app/api/auth/register`
+- Check Vercel deployment logs for any errors
+
+## Limitations on Vercel
+
+- **Serverless Functions**: 10-second execution limit on Hobby plan
+- **WebSockets**: Limited support for persistent connections
+- **File Uploads**: The `uploads` folder will not persist between deployments
+  - Consider using cloud storage (AWS S3, Cloudinary, Vercel Blob)
+
+## File Upload Solution for Vercel
+
+If you need file uploads on Vercel, use Vercel Blob or another cloud storage:
+
+1. Install Vercel Blob SDK:
+   ```bash
+   npm install @vercel/blob
+   ```
+
+2. Update your upload routes to use Vercel Blob instead of local storage
+
+---
+
 # Deploying to Render
 
 This guide will help you deploy the chat backend to Render.
